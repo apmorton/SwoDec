@@ -10,5 +10,10 @@ namespace SwoDec.Packets
         public bool ClockChange { get; private set; }
         public bool Wrap { get; private set; }
         public int Value { get; private set; }
+
+        public GlobalTimeStamp1Packet(int value)
+        {
+            Value = value;
+        }
     }
 }

@@ -140,16 +140,87 @@ namespace SwoDec
 
         private bool DecodeLocalTimeStampPacket()
         {
+            int val;
+
+            if ((buffer[0] & Constants.CMask) == 0)
+            {
+                // get value from header
+                val = (buffer[0] & Constants.Lts2TsMask) >> Constants.Lts2TsOffset;
+
+                // pop from the buffer
+                buffer.RemoveAt(0);
+
+                // create and submit the packet
+                OnPacketAvailable(new Packets.LocalTimeStampPacket(val, SwoLtsRelation.Synchronous));
+
+                return true;
+            }
+
+            var len = DecodeConditionalPayload(out val);
+            if (len > 0)
+            {
+                val = val & Constants.Lts1TsMask;
+                var relation = (buffer[0] & Constants.Lts1TcMask) >> Constants.Lts1TcOffset;
+
+                // pop from the buffer
+                buffer.RemoveRange(0, len + 1);
+
+                // create and submit the packet
+                OnPacketAvailable(new Packets.LocalTimeStampPacket(val, (SwoLtsRelation)relation));
+
+                return true;
+            }
+
             return false;
         }
 
         private bool DecodeGlobalTimeStamp1Packet()
         {
+            int val;
+
+            var len = DecodeConditionalPayload(out val);
+            if (len > 0)
+            {
+                // pop from the buffer
+                buffer.RemoveRange(0, len + 1);
+
+                // create and submit the packet
+                OnPacketAvailable(new Packets.GlobalTimeStamp1Packet(val));
+
+                return true;
+            }
+
             return false;
         }
 
         private bool DecodeGlobalTimeStamp2Packet()
         {
+            int val;
+
+            var len = DecodeConditionalPayload(out val);
+            if (len > 0)
+            {
+                if (len != Constants.Gts2PayloadSize)
+                {
+                    // pop from the buffer
+                    buffer.RemoveRange(0, len + 1);
+
+                    // create and submit packet
+                    OnPacketAvailable(new Packets.UnknownPacket(0));
+
+                    return true;
+                }
+
+
+                // pop from the buffer
+                buffer.RemoveRange(0, len + 1);
+
+                // create and submit the packet
+                OnPacketAvailable(new Packets.GlobalTimeStamp2Packet(val & Constants.Gts2TsMask));
+
+                return true;
+            }
+
             return false;
         }
 
@@ -196,7 +267,7 @@ namespace SwoDec
                 return false;
 
             // get the bytes and reverse the set
-            var bytes = buffer.Skip(1).Take(payloadSize);
+            var bytes = buffer.Skip(1).Take(payloadSize).ToList();
             bytes.Reverse();
 
             // accumulate the bytes into a final value

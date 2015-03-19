@@ -8,5 +8,10 @@ namespace SwoDec.Packets
         public SwoPacketType Type { get { return SwoPacketType.GlobalTimeStamp2; } }
 
         public int Value { get; private set; }
+
+        public GlobalTimeStamp2Packet(int value)
+        {
+            Value = value;
+        }
     }
 }
